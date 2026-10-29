@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>공문 확인</title>
+<style>
+  :root{--bg:#f4f6f9;--card:#fff;--text:#111827;--muted:#6b7280;--line:#e5e7eb;--accent:#1d4ed8;--accent-ink:#fff;
+    --ok-bg:#ecfdf3;--ok:#067647;--warn-bg:#fffaeb;--warn:#b54708;--err-bg:#fef3f2;--err:#b42318;--info-bg:#eff6ff;--info:#1d4ed8;}
+  @media (prefers-color-scheme: dark){:root{--bg:#0f1115;--card:#181b22;--text:#e5e7eb;--muted:#9ca3af;--line:#2a2f3a;
+    --accent:#3b82f6;--ok-bg:#0f2a1c;--ok:#4ade80;--warn-bg:#2a2010;--warn:#fbbf24;--err-bg:#2a1414;--err:#f87171;--info-bg:#132036;--info:#93c5fd;}}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,"Apple SD Gothic Neo","Malgun Gothic","Noto Sans KR",sans-serif;font-size:15px;line-height:1.55}
+  .wrap{max-width:600px;margin:0 auto;padding:24px 16px 48px;display:grid;gap:16px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:22px}
+  .eyebrow{font-size:12px;color:var(--muted);letter-spacing:.04em;margin-bottom:6px}
+  h1{font-size:19px;margin:0 0 14px;line-height:1.4;word-break:keep-all}
+  h2{font-size:16px;margin:0 0 12px}
+  dl{display:grid;grid-template-columns:76px 1fr;gap:6px 12px;margin:0 0 14px;font-size:14px}
+  dt{color:var(--muted)} dd{margin:0}
+  .pill{display:inline-block;padding:1px 10px;border-radius:999px;font-size:12px;font-weight:600;white-space:nowrap}
+  .s-전파{background:var(--warn-bg);color:var(--warn)} .s-확인{background:var(--info-bg);color:var(--info)}
+  .s-조치완료{background:var(--ok-bg);color:var(--ok)} .s-재배정요청{background:var(--err-bg);color:var(--err)}
+  a.post{display:inline-block;margin-bottom:16px;color:var(--accent);font-size:14px}
+  label{display:block;font-size:13px;color:var(--muted);margin:0 0 6px}
+  input,select,textarea{width:100%;font:inherit;color:var(--text);background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:11px 12px}
+  textarea{min-height:72px;resize:vertical}
+  .row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .btns{display:grid;gap:8px;margin-top:14px}
+  button{font:inherit;font-weight:600;border-radius:10px;padding:13px;border:1px solid var(--line);background:var(--card);color:var(--text);cursor:pointer}
+  button.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+  button:disabled{opacity:.5;cursor:default}
+  button.link{background:none;border:none;color:var(--muted);text-decoration:underline;font-weight:400;padding:8px;font-size:14px}
+  button.sm{padding:6px 12px;font-size:13px;border-radius:8px}
+  .box{border-radius:10px;padding:12px 14px;font-size:14px;margin:0 0 14px}
+  .ok{background:var(--ok-bg);color:var(--ok)} .warn{background:var(--warn-bg);color:var(--warn)} .err{background:var(--err-bg);color:var(--err)}
+  .note{background:var(--bg);color:var(--muted)}
+  .panel{border-top:1px dashed var(--line);margin-top:14px;padding-top:16px;display:grid;gap:12px}
+  .hidden{display:none}
+  #msg{margin-top:12px} #msg:empty{display:none}
+  .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px}
+  .stat{background:var(--bg);border-radius:10px;padding:10px 12px}
+  .stat b{display:block;font-size:20px;font-variant-numeric:tabular-nums}
+  .stat span{font-size:12px;color:var(--muted)}
+  ul.list{list-style:none;margin:0;padding:0}
+  ul.list li{display:flex;gap:12px;align-items:center;justify-content:space-between;padding:12px 0;border-top:1px solid var(--line)}
+  ul.list li.me{background:var(--info-bg);margin:0 -12px;padding:12px;border-radius:10px;border-top-color:transparent}
+  .li-main{min-width:0;flex:1}
+  .li-title{font-size:14px;font-weight:600;word-break:keep-all}
+  .li-title a{color:inherit}
+  .li-meta{font-size:12px;color:var(--muted);margin-top:2px}
+  .li-side{display:flex;flex-direction:column;align-items:flex-end;gap:6px}
+  .late{color:var(--err);font-weight:600} .soon{color:var(--warn);font-weight:600}
+  details{margin-top:8px} summary{cursor:pointer;color:var(--muted);font-size:14px;padding:8px 0}
+  @media (max-width:420px){.row2{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="wrap"><div class="card" id="app"></div><div class="card hidden" id="team"></div></div>
+<script>
+  const API = 'https://script.google.com/macros/s/AKfycbwSvzVRcstxxI5ZT_oNTVpBmMugICOwPGG4rsqncn8x7mOj6gJoCyn-AmC6wX-NnzI/exec';
+  const TOKEN = new URLSearchParams(location.search).get('t') || '';
+  let D = { ok: false, msg: '불러오는 중…' };
+  let flash = null;
+  const $ = s => document.querySelector(s);
+  const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const store = (k, v) => { try { if (v === undefined) return localStorage.getItem(k) || ''; localStorage.setItem(k, v); } catch (e) { return ''; } };
+  const pill = s => '<span class="pill s-' + esc(s) + '">' + esc(s === '전파' ? '미회신' : s === '확인' ? '회신·조치중' : s) + '</span>';
+  const dueTxt = it => !it.due ? '기한 없음' : it.due + (it.status === '조치완료' ? '' :
+    it.left < 0 ? ' <span class="late">기한초과</span>' : it.left <= 2 ? ' <span class="soon">' + (it.left === 0 ? 'D-day' : 'D-' + it.left) + '</span>' : '');
+
+  function setMsg(kind, text) { const m = $('#msg'); if (!m) return; m.className = text ? 'box ' + kind : ''; m.textContent = text || ''; }
+
+  function render() {
+    const app = $('#app');
+    if (!D.ok) {
+      app.innerHTML = '<div class="eyebrow">대외문 확인</div><div class="box err">' + esc(D.msg) + '</div>' +
+        '<p style="color:var(--muted);font-size:14px;margin:0">문의는 공문 담당자에게 해 주세요.</p>';
+      return;
+    }
+    const S = D.status;
+    let h = '<div class="eyebrow">대외문 확인</div><h1>' + esc(D.title) + '</h1><dl>' +
+      '<dt>담당부서</dt><dd><b>' + esc(D.dept) + '</b></dd>' +
+      '<dt>공문번호</dt><dd>' + esc(D.no || '-') + '</dd>' +
+      '<dt>회신기한</dt><dd>' + dueTxt({ due: D.due, status: S, left: D.list.filter(x => x.token === D.token).map(x => x.left)[0] }) + '</dd>' +
+      '<dt>상태</dt><dd>' + pill(S) + '</dd></dl>';
+    if (/^https?:\/\//i.test(D.url)) h += '<a class="post" href="' + esc(D.url) + '" target="_blank" rel="noopener">게시글 원문 열기 ↗</a>';
+    if (flash) h += '<div class="box ' + flash.kind + '">' + esc(flash.msg) + '</div>';
+
+    if (S === '조치완료') {
+      if (!flash) h += '<div class="box ok">조치완료 처리된 공문입니다.</div>';
+      h += '<p style="color:var(--muted);font-size:14px;margin:0">' + esc(D.confirmer) + (D.doneAt ? ' · ' + esc(D.doneAt) : '') + '</p>';
+    } else if (S === '재배정요청') {
+      if (!flash) h += '<div class="box warn">"우리 부서 아님"으로 회신되어 관리자가 재배정 중입니다.</div>';
+      h += '<p style="color:var(--muted);font-size:14px;margin:0">추천 부서: ' + esc(D.recDept || '없음') + '</p>';
+    } else {
+      if (S === '확인') h += '<div class="box note">' + esc(D.confirmer) + ' · ' + esc(D.confirmedAt) + ' 회신 완료. 조치가 끝나면 조치완료를 눌러 주세요.</div>';
+      const saved = store('gongmun_dept');
+      const opts = [D.dept].concat(D.depts);
+      h += '<div class="row2"><div><label for="md">회신자 부서</label><select id="md">' +
+        opts.map(d => '<option' + (d === (opts.indexOf(saved) >= 0 ? saved : D.dept) ? ' selected' : '') + '>' + esc(d) + '</option>').join('') + '</select></div>' +
+        '<div><label for="nm">회신자 이름</label><input id="nm" autocomplete="name" placeholder="예: 홍길동" value="' + esc(store('gongmun_name')) + '"></div></div>';
+      h += '<div class="btns">';
+      if (S === '전파') h += '<button class="primary" data-act="confirm">확인했습니다</button><button data-act="done">확인 + 조치까지 완료</button>';
+      else h += '<button class="primary" data-act="done">조치완료</button>';
+      h += '<button class="link" id="toggle" type="button">우리 부서 담당이 아니에요</button></div>';
+      h += '<div class="panel hidden" id="panel">' +
+        '<div><label for="rec">담당일 것 같은 부서</label><select id="rec"><option value="">잘 모르겠음</option>' +
+        D.depts.map(d => '<option>' + esc(d) + '</option>').join('') + '</select></div>' +
+        '<div><label for="why">사유 (선택)</label><textarea id="why" maxlength="300" placeholder="예: 원가 관련 내용으로 구매팀 소관"></textarea></div>' +
+        '<button data-act="notmine">재배정 요청 보내기</button></div>';
+      h += '<div id="msg"></div>';
+    }
+    app.innerHTML = h;
+
+    app.querySelectorAll('button[data-act]').forEach(b => b.addEventListener('click', () => submit(D.token, b.dataset.act)));
+    const t = $('#toggle');
+    if (t) t.addEventListener('click', () => {
+      const p = $('#panel'); p.classList.toggle('hidden');
+      t.textContent = p.classList.contains('hidden') ? '우리 부서 담당이 아니에요' : '닫기';
+    });
+    renderTeam();
+  }
+
+  // 회신 이후: 같은 부서 공문 진행현황
+  function renderTeam() {
+    const box = $('#team');
+    if (!D.ok || D.status === '전파' || !D.list || !D.list.length) { box.classList.add('hidden'); return; }
+    const L = D.list;
+    const cnt = s => L.filter(x => x.status === s).length;
+    const open = L.filter(x => x.status !== '조치완료'), done = L.filter(x => x.status === '조치완료');
+    const row = it => {
+      const title = /^https?:\/\//i.test(it.url) ? '<a href="' + esc(it.url) + '" target="_blank" rel="noopener">' + esc(it.title) + '</a>' : esc(it.title);
+      const act = it.status === '전파' ? '<button class="sm" data-tok="' + esc(it.token) + '" data-act="confirm">확인</button>'
+        : it.status === '확인' ? '<button class="sm primary" data-tok="' + esc(it.token) + '" data-act="done">조치완료</button>' : '';
+      const who = it.status === '조치완료' ? (it.doneAt ? '완료 ' + esc(it.doneAt) : '') : it.confirmer ? esc(it.confirmer) : '';
+      return '<li class="' + (it.token === D.token ? 'me' : '') + '"><div class="li-main"><div class="li-title">' + title + '</div>' +
+        '<div class="li-meta">' + esc(it.no || '-') + ' · ' + dueTxt(it) + (who ? ' · ' + who : '') + (it.token === D.token ? ' · <b>이 공문</b>' : '') + '</div></div>' +
+        '<div class="li-side">' + pill(it.status) + act + '</div></li>';
+    };
+    let h = '<h2>' + esc(D.dept) + ' 공문 진행현황</h2>' +
+      '<div class="stats"><div class="stat"><b>' + cnt('전파') + '</b><span>미회신</span></div>' +
+      '<div class="stat"><b>' + (cnt('확인') + cnt('재배정요청')) + '</b><span>회신·조치중</span></div>' +
+      '<div class="stat"><b>' + done.length + '</b><span>조치완료</span></div></div>';
+    h += open.length ? '<ul class="list">' + open.map(row).join('') + '</ul>' : '<div class="box ok" style="margin:0">진행 중인 공문이 없습니다.</div>';
+    if (done.length) h += '<details><summary>조치완료 ' + done.length + '건 보기</summary><ul class="list">' + done.map(row).join('') + '</ul></details>';
+    h += '<div id="tmsg"></div>';
+    box.innerHTML = h;
+    box.classList.remove('hidden');
+    box.querySelectorAll('button[data-tok]').forEach(b => b.addEventListener('click', () => submit(b.dataset.tok, b.dataset.act, true)));
+  }
+
+  function submit(tok, act, fromList) {
+    const name = ($('#nm') ? $('#nm').value : store('gongmun_name')).trim();
+    const md = $('#md') ? $('#md').value : (store('gongmun_dept') || D.dept);
+    const say = (kind, text) => {
+      if (fromList || !$('#msg')) { const m = $('#tmsg'); m.className = text ? 'box ' + kind : ''; m.style.margin = '12px 0 0'; m.textContent = text || ''; }
+      else setMsg(kind, text);
+    };
+    if (!name) {
+      say('err', '처리자 이름이 필요합니다.' + (fromList && !$('#nm') ? ' 이 페이지에서 한 번 회신한 브라우저에서만 목록 처리가 가능합니다.' : ''));
+      if ($('#nm')) $('#nm').focus();
+      return;
+    }
+    store('gongmun_name', name); store('gongmun_dept', md);
+    const btns = document.querySelectorAll('button');
+    btns.forEach(b => b.disabled = true);
+    say('note', '저장 중…');
+    callApi({ t: tok, act: act, name: name,
+        rec: act === 'notmine' ? $('#rec').value : '',
+        why: act === 'notmine' ? $('#why').value : '',
+        md: md, view: D.token })
+      .then(res => {
+        if (!res.ok) throw new Error(res.error || '저장하지 못했습니다.');
+        D = res.data;
+        flash = fromList ? null : { kind: 'ok', msg: act === 'notmine' ? '재배정 요청을 보냈습니다. 관리자가 처리합니다.' : '회신이 저장되었습니다. 감사합니다.' };
+        render();
+        if (fromList) { const m = $('#tmsg'); if (m) { m.className = 'box ok'; m.style.margin = '12px 0 0'; m.textContent = '저장되었습니다.'; } }
+      })
+      .catch(err => {
+        btns.forEach(b => b.disabled = false);
+        say('err', (err && err.message) ? err.message.replace(/^Exception:\s*/, '') : '네트워크 오류입니다. 잠시 후 다시 시도해 주세요.');
+      });
+  }
+
+  // Apps Script와 통신 (쿠키를 보내지 않아 여러 구글 계정 로그인 상태와 무관하게 동작)
+  function callApi(body) {
+    return fetch(API, { method: 'POST', body: JSON.stringify(body), headers: { 'Content-Type': 'text/plain;charset=utf-8' }, credentials: 'omit', redirect: 'follow' })
+      .then(r => r.json());
+  }
+
+  function load() {
+    if (!TOKEN) { D = { ok: false, msg: '링크가 올바르지 않습니다.' }; render(); return; }
+    $('#app').innerHTML = '<div class="eyebrow">대외문 확인</div><div class="box note">공문 정보를 불러오는 중…</div>';
+    fetch(API + '?api=view&t=' + encodeURIComponent(TOKEN), { credentials: 'omit', redirect: 'follow' })
+      .then(r => r.json())
+      .then(data => { D = data; render(); })
+      .catch(() => { D = { ok: false, msg: '공문 정보를 불러오지 못했습니다. 잠시 후 다시 열어 주세요.' }; render(); });
+  }
+
+  load();
+</script>
+</body>
+</html>
